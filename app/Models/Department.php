@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use App\Models\Employee;
 class Department extends Model
 {
     use HasFactory;
@@ -13,7 +13,7 @@ class Department extends Model
         'roles'
     ];
 
-    public function linkRole(){
-        return $this->hasMany('App\Employee');
+    public function employees(){
+        return $this->hasMany(Employee::class, 'department_id');
     }
 }

@@ -20,7 +20,9 @@ window.Vue = require('vue').default;
 // files.keys().map(key => Vue.component(key.split('/').pop().split('.')[0], files(key).default))
 import VueAxios from 'vue-axios';
 import axios from 'axios';
+import Vue from 'vue';
 Vue.use(VueAxios, axios);
+Vue.use(require('vue-moment'));
 Vue.component('example-component', require('./components/ExampleComponent.vue').default);
 
 /**

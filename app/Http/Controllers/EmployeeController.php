@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
 use Illuminate\Http\Request;
-
+use App\Http\Controllers\select;
+use Carbon\Carbon;
 class EmployeeController extends Controller
 {
     /**
@@ -15,12 +16,23 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $employees = Employee::paginate(10);
-        return EmployeeResource::collection($employees);
+        $employee = Employee::join('department','department.id','=','employee.department_id')->select([
+            'employee.id as id',
+            'employee.name',
+            'employee.username',
+            'employee.password',
+            'employee.identity',
+            'employee.address',
+            'employee.phone',
+            'employee.datesigned',
+            'department.roles',
+            'employee.role'
+        ])->get();
+        return response($employee, 200);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Show the form for creating a new resource.   
      *
      * @return \Illuminate\Http\Response
      */
@@ -37,16 +49,35 @@ class EmployeeController extends Controller
      */
     public function store(Request $request)
     {
-        $employee = new Employee();
-        $employee->name = $request->name;
-        $employee->username = $request->username;
-        $employee->password = $request->password;
-        $employee->identity = $request->identity;
-        $employee->address = $request->address;
-        $employee->phone = $request->phone;
-        $employee->datesigned = $request->datesigned;
-        if($employee->save()){
-            return new EmployeeResource($employee);
+        $check_manager = Employee::where([['department_id', $request->department_id], ['role', $request->role], ['role', '!=', 0]])->first();
+        if($check_manager == ""){
+            $employee = new Employee();
+            $employee->name = $request->name;
+            $employee->username = $request->username;
+            $employee->password = $request->password;
+            $employee->identity = $request->identity;
+            $employee->address = $request->address;
+            $employee->phone = $request->phone;
+            $employee->datesigned = $request->datesigned;
+            $employee->department_id = $request->department_id;
+            $employee->role = 1;
+            if($employee->save()){
+                return new EmployeeResource($employee);
+            }
+        }else{
+            $employee = new Employee();
+            $employee->name = $request->name;
+            $employee->username = $request->username;
+            $employee->password = $request->password;
+            $employee->identity = $request->identity;
+            $employee->address = $request->address;
+            $employee->phone = $request->phone;
+            $employee->datesigned = $request->datesigned;
+            $employee->department_id = $request->department_id;
+            $employee->role = 0;
+            if($employee->save()){
+                return new EmployeeResource($employee);
+            }
         }
     }
 
@@ -82,17 +113,37 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $employee = Employee::findOrFail($id);
-        $employee->name = $request->name;
-        $employee->username = $request->username;
-        $employee->password = $request->password;
-        $employee->identity = $request->identity;
-        $employee->address = $request->address;
-        $employee->phone = $request->phone;
-        $employee->datesigned = $request->datesigned;
-        if($employee->save()){
-            return new EmployeeResource($employee);
+        $check_manager = Employee::where([['department_id', $request->department_id], ['role', $request->role], ['role', '!=', 0]])->first();
+        if($check_manager == ""){
+            $employee = Employee::findOrFail($id);
+            $employee->name = $request->name;
+            $employee->username = $request->username;
+            $employee->password = $request->password;
+            $employee->identity = $request->identity;
+            $employee->address = $request->address;
+            $employee->phone = $request->phone;
+            $employee->datesigned = $request->datesigned;
+            $employee->department_id = $request->department_id;
+            $employee->role = 1;
+            if($employee->save()){
+                return new EmployeeResource($employee);
+            }
+        }else{
+            $employee = Employee::findOrFail($id);
+            $employee->name = $request->name;
+            $employee->username = $request->username;
+            $employee->password = $request->password;
+            $employee->identity = $request->identity;
+            $employee->address = $request->address;
+            $employee->phone = $request->phone;
+            $employee->datesigned = $request->datesigned;
+            $employee->department_id = $request->department_id;
+            $employee->role = 0;
+            if($employee->save()){
+                return new EmployeeResource($employee);
+            }
         }
+        
     }
 
     /**
@@ -107,5 +158,62 @@ class EmployeeController extends Controller
         if($employee->delete()){
             return new EmployeeResource($employee);
         }
+    }
+    public function search($name)
+    {
+        $result = Employee::join('department','department.id','=','employee.department_id')->select([
+            'employee.id as id',
+            'employee.name',
+            'employee.username',
+            'employee.password',
+            'employee.identity',
+            'employee.address',
+            'employee.phone',
+            'employee.datesigned',
+            'department.roles',
+            'employee.role'
+        ])->where('name', 'LIKE', '%'. $name. '%')->get();
+        if(count($result)){
+            return Response()->json($result);
+        }
+        else
+        {
+            return response()->json(['Result' => 'No Data not found'], 404);
+        }
+    }
+    public function filter(Request $request){
+        $start_date = Carbon::parse($request->start_date)->format('Y-m-d');
+        $end_date = Carbon::parse($request->end_date)->format('Y-m-d');
+         
+        $get_all_employee = Employee::join('department','department.id','=','employee.department_id')->select([
+            'employee.id as id',
+            'employee.name',
+            'employee.username',
+            'employee.password',
+            'employee.identity',
+            'employee.address',
+            'employee.phone',
+            'employee.datesigned',
+            'department.roles',
+            'employee.role'
+        ])->whereBetween('datesigned', [
+            $start_date, $end_date
+        ])->get();
+        return response($get_all_employee, 200);
+    }
+    public function filterdep($departmentrole){
+        $employee = Employee::join('department','department.id','=','employee.department_id')->select([
+            'employee.id as id',
+            'employee.name',
+            'employee.username',
+            'employee.password',
+            'employee.identity',
+            'employee.address',
+            'employee.phone',
+            'employee.datesigned',
+            'department.roles',
+            'employee.role'
+        ])->where('roles', $departmentrole)->get();
+        return response($employee, 200);
     }
 }
